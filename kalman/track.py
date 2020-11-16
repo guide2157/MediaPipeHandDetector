@@ -54,7 +54,7 @@ class Track:
 
     """
 
-    def __init__(self, mean, covariance,  n_init, max_age):
+    def __init__(self, mean, covariance, n_init, max_age):
         self.mean = mean
         self.covariance = covariance
         self.hits = 1
@@ -65,35 +65,6 @@ class Track:
 
         self._n_init = n_init
         self._max_age = max_age
-
-    def to_tlwh(self):
-        """Get current position in bounding box format `(top left x, top left y,
-        width, height)`.
-
-        Returns
-        -------
-        ndarray
-            The bounding box.
-
-        """
-        ret = self.mean[:4].copy()
-        ret[2] *= ret[3]
-        ret[:2] -= ret[2:] / 2
-        return ret
-
-    def to_tlbr(self):
-        """Get current position in bounding box format `(min x, miny, max x,
-        max y)`.
-
-        Returns
-        -------
-        ndarray
-            The bounding box.
-
-        """
-        ret = self.to_tlwh()
-        ret[2:] = ret[:2] + ret[2:]
-        return ret
 
     def predict(self, kf):
         """Propagate the state distribution to the current time step using a
@@ -121,7 +92,7 @@ class Track:
 
         """
         self.mean, self.covariance = kf.update(
-            self.mean, self.covariance, detection.to_xyah())
+            self.mean, self.covariance, detection.to_xy_index())
 
         self.hits += 1
         self.time_since_update = 0

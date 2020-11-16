@@ -1,12 +1,12 @@
 import cv2
 import mediapipe as mp
-
+import matplotlib.pyplot as plt
 from absl import app, flags
 from absl.flags import FLAGS
 
 from kalman.tracker import Tracker
 from kalman.detection import Detection
-from process_result import get_bounding_box, analyse_fingers, extract_four_fingers_landmark
+from process_result import get_bounding_box, analyse_fingers, extract_four_fingers_landmark, get_index_point
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
@@ -36,17 +36,19 @@ def main(_argv):
         tracker.predict()
         results = hands.process(image)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        class_name = None
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
                     image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                box = get_bounding_box(hand_landmarks)
-                finger_landmark = extract_four_fingers_landmark(hand_landmarks)
                 class_name = analyse_fingers(hand_landmarks)
+                box = get_bounding_box(hand_landmarks)
+                index_pos = get_index_point(hand_landmarks)
+                finger_landmark = extract_four_fingers_landmark(hand_landmarks)
                 if class_name == 'palm':
-                    tracker.update(Detection(box, finger_landmark))
+                    tracker.update(Detection(box, index_pos, finger_landmark))
                 else:
-                    tracker.update(Detection(box))
+                    tracker.update(Detection(box, index_pos))
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 org = (50, 50)
                 font_scale = 1
@@ -59,11 +61,15 @@ def main(_argv):
 
         if tracker.track is not None and tracker.track.is_confirmed():
             pointer = tracker.track.mean
-            pointer_x = int(pointer[0] * image.shape[1])
-            pointer_y = int(pointer[1] * image.shape[0])
+            if class_name == 'point':
+                pointer_x = int(pointer[2] * image.shape[1])
+                pointer_y = int(pointer[3] * image.shape[0])
+            else:
+                pointer_x = int(pointer[0] * image.shape[1])
+                pointer_y = int(pointer[1] * image.shape[0])
             cv2.circle(image, (pointer_x, pointer_y), 30, (0, 0, 255), -1)
 
-        cv2.imshow('MediaPipe Hands', image)
+        # cv2.imshow('MediaPipe Hands', image)
         if cv2.waitKey(5) & 0xFF == 27:
             break
 

@@ -94,7 +94,7 @@ class Tracker:
         gating_threshold = chi2.ppf(self.kf.chi_sq, df=2)
 
         gating_distance = self.kf.gating_distance(
-            self.track.mean, self.track.covariance, detection.to_xyah(), True)
+            self.track.mean, self.track.covariance, detection.to_xy_index(), True)
         if gating_distance > gating_threshold:
             self.track.mark_missed()
 
@@ -121,7 +121,7 @@ class Tracker:
         self.finger_track = FingerTrack(mean, covariance)
 
     def _initiate_track(self, detection):
-        mean, covariance = self.kf.initiate(detection.to_xyah())
+        mean, covariance = self.kf.initiate(detection.to_xy_index())
         self.track = Track(
             mean, covariance, self.n_init, self.max_age)
         if detection.finger_landmark:

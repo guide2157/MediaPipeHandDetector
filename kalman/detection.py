@@ -20,8 +20,9 @@ class Detection(object):
 
     """
 
-    def __init__(self, tlbr, finger_landmark=None):
+    def __init__(self, tlbr, index_pos, finger_landmark=None):
         self.tlbr = np.asarray(tlbr, dtype=np.float)
+        self.index_pos = index_pos
         self.finger_landmark = finger_landmark
 
     def to_tlwh(self):
@@ -39,3 +40,7 @@ class Detection(object):
         ret[:2] += ret[2:] / 2
         ret[2] /= ret[3]
         return ret
+
+    def to_xy_index(self):
+        x_min, y_min, x_max, y_max = self.tlbr
+        return ((x_min + x_max) / 2, (y_max + y_min) / 2,) + self.index_pos

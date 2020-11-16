@@ -4,6 +4,11 @@ import numpy as np
 mp_drawing = mp.solutions.drawing_utils
 
 
+def get_index_point(landmark_list):
+    index_pos = landmark_list.landmark[8]
+    return index_pos.x, index_pos.y
+
+
 def get_bounding_box(landmark_list):
     x_cords = np.zeros(21)
     y_cords = np.zeros(21)
