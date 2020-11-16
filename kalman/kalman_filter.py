@@ -11,8 +11,6 @@ class KalmanFilter(object):
 
         x, y, a, h, vx, vy, va, vh
 
-    contains the bounding box center position (x, y), aspect ratio a, height h,
-    and their respective velocities.
 
     Object motion follows a constant velocity model. The bounding box location
     (x, y, a, h) is taken as direct observation of the state space (linear
@@ -42,8 +40,7 @@ class KalmanFilter(object):
         Parameters
         ----------
         measurement : ndarray
-            Bounding box coordinates (x, y, a, h) with center position (x, y),
-            aspect ratio a, and height h.
+            Bounding box coordinates (x, y, a, h)
 
         Returns
         -------
@@ -58,13 +55,13 @@ class KalmanFilter(object):
         mean = np.r_[mean_pos, mean_vel]
 
         std = [
+            2 * self._std_weight_position * measurement[0],
+            2 * self._std_weight_position * measurement[1],
+            2 * self._std_weight_position * measurement[2],
             2 * self._std_weight_position * measurement[3],
-            2 * self._std_weight_position * measurement[3],
-            1e-2,
-            2 * self._std_weight_position * measurement[3],
-            10 * self._std_weight_velocity * measurement[3],
-            10 * self._std_weight_velocity * measurement[3],
-            1e-5,
+            10 * self._std_weight_velocity * measurement[0],
+            10 * self._std_weight_velocity * measurement[1],
+            10 * self._std_weight_velocity * measurement[2],
             10 * self._std_weight_velocity * measurement[3]]
         covariance = np.diag(np.square(std))
         return mean, covariance
@@ -89,14 +86,14 @@ class KalmanFilter(object):
 
         """
         std_pos = [
-            self._std_weight_position * mean[3],
-            self._std_weight_position * mean[3],
-            1e-2,
+            self._std_weight_position * mean[0],
+            self._std_weight_position * mean[1],
+            self._std_weight_position * mean[2],
             self._std_weight_position * mean[3]]
         std_vel = [
-            self._std_weight_velocity * mean[3],
-            self._std_weight_velocity * mean[3],
-            1e-5,
+            self._std_weight_velocity * mean[0],
+            self._std_weight_velocity * mean[1],
+            self._std_weight_velocity * mean[2],
             self._std_weight_velocity * mean[3]]
         motion_cov = np.diag(np.square(np.r_[std_pos, std_vel]))
 
@@ -124,9 +121,9 @@ class KalmanFilter(object):
 
         """
         std = [
-            self._std_weight_position * mean[3],
-            self._std_weight_position * mean[3],
-            1e-1,
+            self._std_weight_position * mean[0],
+            self._std_weight_position * mean[1],
+            self._std_weight_position * mean[2],
             self._std_weight_position * mean[3]]
         innovation_cov = np.diag(np.square(std))
 
@@ -145,9 +142,7 @@ class KalmanFilter(object):
         covariance : ndarray
             The state's covariance matrix (8x8 dimensional).
         measurement : ndarray
-            The 4 dimensional measurement vector (x, y, a, h), where (x, y)
-            is the center position, a the aspect ratio, and h the height of the
-            bounding box.
+            The 4 dimensional measurement vector (x, y, a, h)
 
         Returns
         -------
@@ -170,7 +165,7 @@ class KalmanFilter(object):
         return new_mean, new_covariance
 
     def gating_distance(self, mean, covariance, measurement,
-                        only_position=False):
+                        center_position=True):
         """Compute gating distance between state distribution and measurement.
 
         A suitable distance threshold can be obtained from `chi2inv95`. If
@@ -185,11 +180,10 @@ class KalmanFilter(object):
             Covariance of the state distribution (8x8 dimensional).
         measurement : ndarray
             An 4 dimensional matrix, in
-            format (x, y, a, h) where (x, y) is the bounding box center
-            position, a the aspect ratio, and h the height.
-        only_position : Optional[bool]
+            format (x, y, a, h)
+        center_position : Optional[bool]
             If True, distance computation is done with respect to the bounding
-            box center position only.
+            box center position.
 
         Returns
         -------
@@ -200,9 +194,12 @@ class KalmanFilter(object):
 
         """
         mean, covariance = self.project(mean, covariance)
-        if only_position:
+        if center_position:
             mean, covariance = mean[:2], covariance[:2, :2]
             measurement = measurement[:2]
+        else:
+            mean, covariance = mean[2:], covariance[2:, 2:]
+            measurement = measurement[2:]
 
         cholesky_factor = np.linalg.cholesky(covariance)
         d = measurement - mean

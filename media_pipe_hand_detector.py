@@ -1,12 +1,12 @@
 import cv2
 import mediapipe as mp
-import matplotlib.pyplot as plt
 from absl import app, flags
 from absl.flags import FLAGS
 
 from kalman.tracker import Tracker
 from kalman.detection import Detection
-from process_result import get_bounding_box, analyse_fingers, extract_four_fingers_landmark, get_index_point
+from process_result import get_bounding_box, analyse_fingers, extract_four_fingers_landmark, get_index_point, \
+    generate_mouse_position
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
@@ -21,6 +21,7 @@ def main(_argv):
         min_detection_confidence=0.7)
 
     tracker = Tracker(FLAGS.chi_sq)
+    num_since_last_point = 0
 
     cap = cv2.VideoCapture(0)
 
@@ -62,16 +63,14 @@ def main(_argv):
         if tracker.track is not None and tracker.track.is_confirmed():
             pointer = tracker.track.mean
             if class_name == 'point':
-                pointer_x = int(pointer[2] * image.shape[1])
-                pointer_y = int(pointer[3] * image.shape[0])
-            else:
-                pointer_x = int(pointer[0] * image.shape[1])
-                pointer_y = int(pointer[1] * image.shape[0])
+                num_since_last_point = 0
+            pointer_x, pointer_y = generate_mouse_position(pointer, image.shape, num_since_last_point)
             cv2.circle(image, (pointer_x, pointer_y), 30, (0, 0, 255), -1)
 
-        # cv2.imshow('MediaPipe Hands', image)
+        cv2.imshow('MediaPipe Hands', image)
         if cv2.waitKey(5) & 0xFF == 27:
             break
+        num_since_last_point += 1
 
     hands.close()
     cap.release()

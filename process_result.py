@@ -4,6 +4,16 @@ import numpy as np
 mp_drawing = mp.solutions.drawing_utils
 
 
+def generate_mouse_position(pointer, image_shape, num_since_last_point):
+    if num_since_last_point < 15:
+        pointer_x = int(pointer[2] * image_shape[1])
+        pointer_y = int(pointer[3] * image_shape[0])
+    else:
+        pointer_x = int(pointer[0] * image_shape[1])
+        pointer_y = int(pointer[1] * image_shape[0])
+    return pointer_x, pointer_y
+
+
 def get_index_point(landmark_list):
     index_pos = landmark_list.landmark[8]
     return index_pos.x, index_pos.y
